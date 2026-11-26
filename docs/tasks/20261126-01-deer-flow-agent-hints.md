@@ -28,6 +28,7 @@
 | e2e（真 Gateway + 桩上游） | `bash e2e/run.sh` | PASS（9 组断言，见下） |
 | 打包检查 | `uv run --project ~/deer-flow/backend --no-sync python ~/deer-flow/scripts/check_extension.py .` | 通过 |
 | 真实扩展宿主 | `tests/test_integration.py`：真实 `IsolatedMiddleware` + 锚点栈 + 抓包模型 | 7 passed |
+| 实时面板 | `bash scripts/live.sh --smoke`：真 Gateway + 桩上游 + 终端聊天 | PASS（35 事件，六态） |
 
 e2e 断言（原文输出见 `docs/evidence/`）：
 

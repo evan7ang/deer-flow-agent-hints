@@ -16,6 +16,7 @@ from deerflow_extension_api import ExtensionInstall, ExtensionRegistry, extensio
 
 from deerflow_agent_hints.config import PluginConfig, parse_config
 from deerflow_agent_hints.control import ControlService
+from deerflow_agent_hints.feed import EventFeed
 from deerflow_agent_hints.hooks import HintContributor
 from deerflow_agent_hints.lifecycle import HintCompactionObserver, HintTaskLifecycle
 from deerflow_agent_hints.router import build_router
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["install", "__version__"]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 @extension(api="0.2.13", name="agent-hints")
@@ -40,12 +41,13 @@ def install(registry: ExtensionRegistry, config: Mapping[str, Any]) -> None:
         logger.info("agent-hints: disabled by configuration")
         return
 
-    trace = Trace(plugin_config.trace_enabled, plugin_config.trace_file)
+    feed = EventFeed()
+    trace = Trace(plugin_config.trace_enabled, plugin_config.trace_file, feed)
     store = SessionStore(None, plugin_config.state_path)
     meta = ThreadMetaReader(None)
     control = ControlService(plugin_config, store, trace)
     runtime = PluginRuntime(plugin_config, store, control, meta, trace)
-    service = AgentHintsService(plugin_config, runtime, store, control, meta, trace)
+    service = AgentHintsService(plugin_config, runtime, store, control, meta, trace, feed)
 
     registry.middlewares(HintContributor(runtime))
     registry.task_lifecycle(HintTaskLifecycle(runtime))

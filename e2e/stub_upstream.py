@@ -1,8 +1,13 @@
-"""Scripted OpenAI-compatible upstream for the Agent Hint e2e run.
+"""Scripted OpenAI-compatible upstream for the Agent Hint live demo / e2e run.
 
 Records every request (path, headers, body, arrival time) as one JSONL line and
-answers with a fixed completion (JSON, or SSE when the request streams). It is
-the wire observer the assertions run against; nothing here is part of the plugin.
+answers with a completion (JSON, or SSE when the request streams). In ``echo``
+mode a main-line request replies with the user's last message and an auxiliary
+request (no tools) replies with a short acknowledgement, so a live chat feels
+natural without any model credentials.
+
+It is the wire observer the assertions run against; nothing here is part of the
+plugin.
 """
 
 from __future__ import annotations
@@ -14,7 +19,32 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
-def _completion(model: str) -> dict:
+def _last_user_text(body: dict) -> str:
+    for message in reversed(body.get("messages") or []):
+        if not isinstance(message, dict) or message.get("role") != "user":
+            continue
+        content = message.get("content")
+        if isinstance(content, str) and content.strip():
+            return content
+        if isinstance(content, list):
+            parts = [block.get("text") for block in content if isinstance(block, dict) and isinstance(block.get("text"), str)]
+            text = "".join(parts).strip()
+            if text:
+                return text
+    return ""
+
+
+def reply_text(body: dict, *, echo: bool) -> str:
+    if not echo:
+        return "stub answer"
+    # Auxiliary calls (titles, summaries) carry no tools; do not echo prompts.
+    if not body.get("tools"):
+        return "Noted."
+    text = _last_user_text(body)
+    return f"Echo: {text}" if text else "Echo."
+
+
+def _completion(model: str, text: str) -> dict:
     return {
         "id": "chatcmpl-stub",
         "object": "chat.completion",
@@ -23,7 +53,7 @@ def _completion(model: str) -> dict:
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": "stub answer"},
+                "message": {"role": "assistant", "content": text},
                 "finish_reason": "stop",
             }
         ],
@@ -32,10 +62,11 @@ def _completion(model: str) -> dict:
 
 
 class StubUpstream:
-    def __init__(self, capture_path: Path) -> None:
+    def __init__(self, capture_path: Path, *, echo: bool = False) -> None:
         self.capture_path = Path(capture_path)
         self.capture_path.parent.mkdir(parents=True, exist_ok=True)
         self.capture_path.write_text("", encoding="utf-8")
+        self.echo = echo
         self._lock = threading.Lock()
         outer = self
 
@@ -77,12 +108,13 @@ class StubUpstream:
                     handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
                 model = str(body.get("model") or "stub-model")
+                text = reply_text(body, echo=outer.echo)
                 if body.get("stream"):
-                    self._send_sse(model)
+                    self._send_sse(model, text)
                 else:
-                    self._send_json(200, _completion(model))
+                    self._send_json(200, _completion(model, text))
 
-            def _send_sse(self, model: str) -> None:
+            def _send_sse(self, model: str, text: str) -> None:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Transfer-Encoding", "chunked")
@@ -102,7 +134,7 @@ class StubUpstream:
                 event(
                     {
                         **base,
-                        "choices": [{"index": 0, "delta": {"role": "assistant", "content": "stub answer"}, "finish_reason": None}],
+                        "choices": [{"index": 0, "delta": {"role": "assistant", "content": text}, "finish_reason": None}],
                     }
                 )
                 event(

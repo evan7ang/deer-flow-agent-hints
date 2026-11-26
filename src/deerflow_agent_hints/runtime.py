@@ -18,6 +18,7 @@ import asyncio
 import hashlib
 import logging
 import threading
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -211,6 +212,7 @@ class PluginRuntime:
         self._counter_lock = threading.Lock()
         self._injection: str = "unknown"
         self._disabled_reason: str | None = None
+        self._token = uuid.uuid4().hex[:6]
 
     # -- counters / diagnostics ---------------------------------------------
 
@@ -339,6 +341,9 @@ class PluginRuntime:
             self._trace.emit(
                 {
                     "event": "logical",
+                    "runtime": self._token,
+                    "task_id": identity.task_id,
+                    "prev_call_index": facts.call_index - 1,
                     "session_id": call.session_id,
                     "kind": call.kind,
                     "call_index": call.call_index,
@@ -500,12 +505,11 @@ class PluginRuntime:
 
             cache: tuple[int, int] | None = None
             if self.config.cache == "dynamic":
-                if (
-                    not call.after_rewrite
-                    and not call.head_changed
-                    and offset >= 1
-                    and signature_stable(call.prev_signature, signature, call.call_index)
-                ):
+                # The rewrite signal is the summary_text fingerprint (exact). The
+                # head-id fingerprint is diagnostic only: DeerFlow rewrites leading
+                # dynamic-context messages on every turn, and gating on it would
+                # suppress the declaration forever after the first compaction.
+                if not call.after_rewrite and offset >= 1 and signature_stable(call.prev_signature, signature, call.call_index):
                     tokens = estimate_tokens([getattr(request, "system_message", None), *list(getattr(request, "messages", None) or [])])
                     if tokens >= MIN_CACHE_TOKENS:
                         cache = (call.ttl_s, offset)
@@ -535,6 +539,7 @@ class PluginRuntime:
                 self._trace.emit(
                     {
                         "event": "hint",
+                        "hint": hint,
                         "session_id": call.session_id,
                         "kind": call.kind,
                         "call_index": call.call_index,

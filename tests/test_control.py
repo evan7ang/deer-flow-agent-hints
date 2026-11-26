@@ -168,6 +168,7 @@ async def test_clear_isolation_lifts_the_quarantine(tmp_path):
     from deerflow_extension_api import ExtensionRuntimeDeps
 
     from deerflow_agent_hints.config import parse_config
+    from deerflow_agent_hints.feed import EventFeed
     from deerflow_agent_hints.router import build_router
     from deerflow_agent_hints.runtime import PluginRuntime
     from deerflow_agent_hints.service import AgentHintsService
@@ -187,7 +188,7 @@ async def test_clear_isolation_lifts_the_quarantine(tmp_path):
     control = ControlService(config, store, trace)
     meta = ThreadMetaReader(None)
     runtime = PluginRuntime(config, store, control, meta, trace)
-    service = AgentHintsService(config, runtime, store, control, meta, trace)
+    service = AgentHintsService(config, runtime, store, control, meta, trace, EventFeed())
     await service.start(ExtensionRuntimeDeps(session_factory=None))
     try:
         await store.save(

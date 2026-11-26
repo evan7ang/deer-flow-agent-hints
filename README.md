@@ -31,7 +31,8 @@ src/deerflow_agent_hints/
 ├── lifecycle.py    # on_task_start/stop, on_context_compacted
 ├── service.py       # resources, injection self-check, threads_meta poller
 ├── threads.py      # read-only threads_meta access (archive/delete/branch)
-├── router.py       # GET /api/extension/agent-hints/status
+├── router.py       # status, live feed, live HTML page, clear-isolation
+├── feed.py         # bounded in-memory feed behind the live page
 └── trace.py        # content-free JSONL diagnostics
 ```
 
@@ -97,6 +98,38 @@ A decoded hint (fresh session, first call):
 A manage request (`pause` shown) posts `{"model":"…","messages":[],"stream":false}`
 with `session.state = "pause"` and
 `context_management = {"manage_request": true, "edits": [{"type": "offload", "target": "session"}]}`.
+
+## Watch it live
+
+The extension serves a self-contained live page from the Gateway:
+
+```text
+http://<gateway>/api/extension/agent-hints/live
+# through the frontend's nginx: http://localhost:2026/api/extension/agent-hints/live
+```
+
+It polls `GET /api/extension/agent-hints/events` (a bounded in-memory feed) and
+renders every emitted hint and manage outcome as it happens — time, session,
+`call_index`, `epoch`, `state`, priority, `ttl_s`, `msg_offset`, the manage
+outcome, and the exact JSON that went on the wire. `GET .../status` is the
+machine-readable summary (injection self-check, counters, quarantined sessions).
+
+Without any model credentials you can drive the real Gateway with a scripted
+upstream and chat from the terminal:
+
+```bash
+bash scripts/live.sh          # real Gateway + echo upstream; terminal chat
+bash scripts/live.sh --smoke  # scripted end-to-end check of the panel (exit 0/1)
+```
+
+The demo prints the live URL, mirrors hint lines in the terminal, and supports
+`/new`, `/use N`, `/threads`, `/compact`, `/archive`, `/status`, `/events [n]`.
+
+With a real deployment (`make dev` and a configured model), open the same path
+on port 2026 and chat in the UI; the page updates while you type. For byte-level
+inspection of the upstream traffic (including the model's own requests), point
+the model's `api_base` at
+[`agent-hint-watcher`](https://github.com/evan7ang/agent-hint-watcher) instead.
 
 ## Lifecycle triggers
 

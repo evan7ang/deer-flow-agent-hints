@@ -11,6 +11,7 @@ from deerflow_extension_api import ExtensionRuntimeDeps
 
 from deerflow_agent_hints.config import PluginConfig
 from deerflow_agent_hints.control import ControlService
+from deerflow_agent_hints.feed import EventFeed
 from deerflow_agent_hints.runtime import PluginRuntime
 from deerflow_agent_hints.store import SessionStore
 from deerflow_agent_hints.threads import ThreadMetaReader
@@ -98,8 +99,10 @@ class AgentHintsService:
         control: ControlService,
         meta: ThreadMetaReader,
         trace: Trace,
+        feed: EventFeed,
     ) -> None:
         self._config = config
+        self._feed = feed
         self._runtime = runtime
         self._store = store
         self._control = control
@@ -146,8 +149,13 @@ class AgentHintsService:
         await self._store.stop()
         self._trace.emit({"event": "service", "action": "stop"})
 
+    def events(self, since: int = 0, limit: int = 200) -> dict[str, Any]:
+        return {"seq": self._feed.last_seq, "events": self._feed.since(since, limit)}
+
     async def status(self) -> dict[str, Any]:
         payload = await self._runtime.status()
+        payload["events"] = {"seq": self._feed.last_seq, "limit": 500}
+        payload["live"] = "/api/extension/agent-hints/live"
         payload["store"] = "host" if self._store.ready else "unavailable"
         payload["thread_poller"] = self._poll_task is not None
         return payload

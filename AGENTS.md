@@ -12,6 +12,7 @@ config.py             配置解析，install 期报错
 store.py              会话事实：宿主库自建表 + sqlite 文件回退
 control.py            manage 传输：async、每会话串行、仅 resume 重试、隔离
 threads.py            threads_meta 只读（list 驱动），失败即降级
+feed.py               环形事件缓冲；/events 与 /live 页面消费它
 runtime.py            事实状态机；不 import deerflow 私有模块（lazy import）
 hooks.py / lifecycle.py / service.py / router.py / trace.py   宿主接线
 ```
@@ -21,6 +22,8 @@ hooks.py / lifecycle.py / service.py / router.py / trace.py   宿主接线
 ```bash
 PYTHONPATH=src:tests ~/deer-flow/backend/.venv/bin/python -m pytest tests -q
 bash e2e/run.sh
+bash scripts/live.sh --smoke        # 真 Gateway + 交互面板的端到端检查
+bash scripts/live.sh                # 交互：终端聊天 + /api/extension/agent-hints/live
 uv run --project ~/deer-flow/backend --no-sync python ~/deer-flow/scripts/check_extension.py .
 ```
 
@@ -41,12 +44,13 @@ uv run --project ~/deer-flow/backend --no-sync python ~/deer-flow/scripts/check_
    消息数量或首条内容做“猜测式” epoch 自增。
 8. **辅助请求不记账**：标题、摘要、goal、记忆、评审调用天然不经过 wrap 链；
    不要给它们注入任何 hint。
-9. **无内容 trace**：trace 只记 hint 与结果分类，不记端点、凭据、消息内容。
+9. **无内容 trace**：trace 与实时面板只记 hint 与结果分类，不记端点、凭据、消息内容。
 10. 改 wire 形状 / 触发源 / 状态机必须同步 `docs/implementation-profile.md`、
     `docs/conformance.md` 与单测向量（协议附录 B 的 V1–V10）。
 
 ## 变更检查
 
 - 改动 hook 或状态机：`pytest tests -q` + `bash e2e/run.sh`。
+- 改动实时面板/演示脚本：`bash scripts/live.sh --smoke`。
 - 改动查询/建表：跑集成测试（宿主库路径）与文件回退路径。
 - 改动打包：跑 `check_extension.py`。

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "deerflow-extension-agent-hints"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent Hint protocol v1.0 sender for DeerFlow: X-Agent-Hint on main-line model requests plus pause/resume/stop/compact manage requests."
 readme = "README.md"
 license = "MulanPSL-2.0"

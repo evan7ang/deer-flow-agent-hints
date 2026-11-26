@@ -303,15 +303,15 @@ class ControlService:
                     )
                 code = response.status_code
                 if 200 <= code < 300:
-                    self._record(verb, facts, call_index, epoch, "accepted", code)
+                    self._record(verb, facts, call_index, epoch, "accepted", code, hint)
                     return "accepted"
                 if verb == "resume" and (code in _RETRYABLE or 500 <= code < 600):
                     if attempt + 1 < attempts:
                         continue
-                    self._record(verb, facts, call_index, epoch, "failed", code)
+                    self._record(verb, facts, call_index, epoch, "failed", code, hint)
                     return "failed"
                 if 400 <= code < 500:
-                    self._record(verb, facts, call_index, epoch, "failed", code)
+                    self._record(verb, facts, call_index, epoch, "failed", code, hint)
                     return "failed"
                 return await self._finish(
                     verb,
@@ -320,15 +320,26 @@ class ControlService:
                     detail=f"HTTP {code}",
                     payload=payload,
                     status=code,
+                    hint=hint,
                     call_index=call_index,
                     epoch=epoch,
                 )
         return "failed"
 
-    def _record(self, verb: ManageVerb, facts: SessionFacts, call_index: int, epoch: int, outcome: str, status: int | None) -> None:
+    def _record(
+        self,
+        verb: ManageVerb,
+        facts: SessionFacts,
+        call_index: int,
+        epoch: int,
+        outcome: str,
+        status: int | None,
+        hint: dict[str, Any] | None = None,
+    ) -> None:
         self._trace.emit(
             {
                 "event": "manage",
+                "hint": hint,
                 "verb": verb,
                 "session_id": facts.session_id,
                 "call_index": call_index,
@@ -350,6 +361,7 @@ class ControlService:
         status: int | None = None,
         call_index: int = 1,
         epoch: int = 0,
+        hint: dict[str, Any] | None = None,
     ) -> str:
         if outcome == "unknown":
             reason = f"{verb} {detail}"
@@ -364,6 +376,7 @@ class ControlService:
         self._trace.emit(
             {
                 "event": "manage",
+                "hint": hint,
                 "verb": verb,
                 "session_id": facts.session_id,
                 "call_index": call_index,

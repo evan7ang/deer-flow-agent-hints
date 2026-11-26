@@ -81,8 +81,9 @@ LangGraph 1.2.x，Python 3.12）。
    `failed`，不隔离、不重试。
 2. **两次调用之间发生多次改写的合并**：`summary_text` 是指纹而不是计数器，多次改写只 +1；
    仅在无该通道的旧宿主上按事件计数。
-3. **中段改写不计 epoch**：`POST /state`、工具提醒/动态上下文的中段增删不算改写；若头部
-   消息 id 变化，会额外抑制当轮 `cache_control`（宁可少发）。
+3. **中段改写不计 epoch**：`POST /state`、工具提醒/动态上下文的中段增删不算改写；头部 id
+   指纹只作为 trace 诊断字段，不参与缓存判定（DeerFlow 每轮都会改写前置动态上下文，用它
+   抑制会导致压缩后永久不再声明缓存）。
 4. **`call_index` 播种是近似**：`count(AIMessage)` 受压缩删消息与错误兜底消息影响；只用于
    首次看到既有线程时的起点，之后严格单调。
 5. **barrier 有界**：在途 mutation 最多等 `pendingOpAwaitMs`（默认 3 s）；超时后放行。
@@ -98,5 +99,7 @@ LangGraph 1.2.x，Python 3.12）。
 | 单元测试（wire/policy/config/control） | `tests/`，`pytest` |
 | 真实扩展宿主集成（真实 `IsolatedMiddleware` + 锚点栈 + 抓包模型） | `tests/test_integration.py` |
 | 真 Gateway + 桩上游 e2e（场景 A/B/C/D + 归档） | `bash e2e/run.sh` |
+| 实时面板冒烟（真 Gateway + 终端聊天，六态 + 自动/手动压缩） | `bash scripts/live.sh --smoke` |
+| 实时面板 | `GET /api/extension/agent-hints/live`（+ `/events`、`/status`） |
 | 脱敏抓包 | `docs/evidence/e2e-capture-20261126.jsonl` |
 | 打包检查 | `check_extension.py`（见任务文档） |

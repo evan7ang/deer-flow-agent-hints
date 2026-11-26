@@ -13,9 +13,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+from deerflow_agent_hints.feed import EventFeed
+
 
 class Trace:
-    def __init__(self, enabled: bool = False, path: str | None = None) -> None:
+    def __init__(self, enabled: bool = False, path: str | None = None, feed: EventFeed | None = None) -> None:
+        self._feed = feed
         self._enabled = enabled
         self._path = Path(path) if path else None
         self._lock = threading.Lock()
@@ -30,6 +33,8 @@ class Trace:
         return self._enabled and self._path is not None
 
     def emit(self, event: dict[str, Any]) -> None:
+        if self._feed is not None:
+            self._feed.append(event)
         if not self.enabled:
             return
         record = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()), **event}
