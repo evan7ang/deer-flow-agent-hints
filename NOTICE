@@ -1,0 +1,17 @@
+deerflow-agent-hints
+Copyright 2026 evan7ang
+
+This product includes software ported from langchain-agent-hints
+(https://github.com/evan7ang/langchain-agent-hints), which is licensed under the
+Mulan Permissive Software License, Version 2:
+
+- the base64url wire codec and the token-estimation / logical-message-count
+  helpers (src/deerflow_agent_hints/wire.py, src/deerflow_agent_hints/policy.py);
+- the manage-request reliability model: per-session serialization, resume-only
+  bounded retries, isolation on unknown mutation outcomes
+  (src/deerflow_agent_hints/control.py).
+
+The wire contract implemented here is the Agent Hint protocol v1.0
+(agent-hint-protocol.md). The ported code was rewritten for strict v1.0 wire
+emission, DeerFlow session identity, async transport, and DeerFlow lifecycle
+triggers.

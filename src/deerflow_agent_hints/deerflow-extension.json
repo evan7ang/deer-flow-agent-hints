@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "deerflow.agent-hints",
+  "locales": {
+    "zh-CN": {
+      "title": "Agent Hint 协议下发",
+      "description": "按 Agent Hint 协议 v1.0，在每条主线模型请求上发送 X-Agent-Hint 头（会话身份、生命周期、优先级、缓存意图），并通过独立管理请求下发 pause/resume/stop/compact。请求体保持不变。",
+      "usage": [
+        {
+          "title": "在 config.yaml 启用",
+          "description": "把插件加入 plugins: 块并重启 Gateway。可选配置优先级、缓存、模型白名单与管理端点。"
+        },
+        {
+          "title": "查看运行状态",
+          "description": "访问 GET /api/extension/agent-hints/status 查看注入自检结果、会话计数、隔离会话与管理请求统计。"
+        }
+      ]
+    },
+    "en-US": {
+      "title": "Agent Hint sender",
+      "description": "Sends an X-Agent-Hint header on every main-line model request (session identity, lifecycle state, priority, cache intent) and emits pause/resume/stop/compact as dedicated manage requests. The request body is never touched.",
+      "usage": [
+        {
+          "title": "Enable in config.yaml",
+          "description": "Add the plugin to the plugins: block and restart the Gateway. Priority, cache, model filters and the manage endpoint are configurable."
+        },
+        {
+          "title": "Inspect runtime status",
+          "description": "GET /api/extension/agent-hints/status reports the injection self-check, session counters, quarantined sessions and manage outcomes."
+        }
+      ]
+    }
+  }
+}
